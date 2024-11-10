@@ -6,7 +6,7 @@
 -- Author      : Ameer Shalabi <ameershalabi94@gmail.com>
 -- Company     : -
 -- Created     : Thu Oct 24 12:33:34 2024
--- Last update : Sun Nov 10 14:22:58 2024
+-- Last update : Sun Nov 10 14:43:29 2024
 -- Platform    : -
 -- Standard    : <VHDL-2008 | VHDL-2002 | VHDL-1993 | VHDL-1987>
 --------------------------------------------------------------------------------
@@ -30,11 +30,11 @@ entity hamming_encoder is
   port (
     clk       : in  std_logic;
     n_arst    : in  std_logic;
-    ready_i   : in  std_logic;
-    valid_i   : in  std_logic;
+    --ready_i   : in  std_logic; -- removed for now
+    --valid_i   : in  std_logic; -- removed for now
     data_i    : in  std_logic_vector(511 downto 0);
-    ready_o   : out std_logic;
-    valid_o   : out std_logic;
+    --ready_o   : out std_logic; -- removed for now
+    --valid_o   : out std_logic; -- removed for now
     encoded_o : out std_logic_vector(521 downto 0)
   );
 
