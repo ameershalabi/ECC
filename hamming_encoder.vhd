@@ -1,12 +1,12 @@
 --------------------------------------------------------------------------------
--- Title       : Hamming Encoding block fore 512b data
+-- Title       : Hamming Encoding block for 512b data
 -- Project     : ECC
 --------------------------------------------------------------------------------
 -- File        : hamming_encoder.vhd
 -- Author      : Ameer Shalabi <ameershalabi94@gmail.com>
 -- Company     : -
 -- Created     : Thu Oct 24 12:33:34 2024
--- Last update : Sun Nov 10 14:43:29 2024
+-- Last update : Sun Nov 10 18:55:54 2024
 -- Platform    : -
 -- Standard    : <VHDL-2008 | VHDL-2002 | VHDL-1993 | VHDL-1987>
 --------------------------------------------------------------------------------
@@ -30,11 +30,7 @@ entity hamming_encoder is
   port (
     clk       : in  std_logic;
     n_arst    : in  std_logic;
-    --ready_i   : in  std_logic; -- removed for now
-    --valid_i   : in  std_logic; -- removed for now
     data_i    : in  std_logic_vector(511 downto 0);
-    --ready_o   : out std_logic; -- removed for now
-    --valid_o   : out std_logic; -- removed for now
     encoded_o : out std_logic_vector(521 downto 0)
   );
 
@@ -48,8 +44,18 @@ architecture arch of hamming_encoder is
 
   -- array to hold parity bit positions
   type parity_positions is array (0 to n_parity_const-1) of integer range 0 to 2**n_parity_const;
-  signal parity_pos_arr  : parity_positions;
-  signal parity_step_arr : parity_positions;
+
+  function get_pos_arr (num_of_parities : integer) return parity_positions is
+    variable parity_pos_arr : parity_positions;
+  begin
+    generate_parity_pos : for p in 0 to num_of_parities-1 loop
+      parity_pos_arr(p) := 2**p - 1;
+    end loop generate_parity_pos;
+    return parity_pos_arr;
+  end function get_pos_arr;
+
+  -- parity position array
+  constant parity_pos_arr : parity_positions := get_pos_arr(n_parity_const);
 
   signal encoded_vector            : std_logic_vector(w_enc_data_const-1 downto 0);
   signal parities                  : std_logic_vector(n_parity_const-1 downto 0);
@@ -68,11 +74,8 @@ architecture arch of hamming_encoder is
   signal parity_255_bit_vector : std_logic_vector(255 downto 0);
   signal parity_511_bit_vector : std_logic_vector(10 downto 0);
 
-  signal count_1s_tst : natural;
-
   -- first register block (rb1_*)
   signal rb1_encoded_vector_r : std_logic_vector(w_enc_data_const-1 downto 0);
-  signal rb1_parity_pos_arr_r : parity_positions;
 
   signal parity_0_vector_256_bits : std_logic_vector(255 downto 0);
   signal parity_0_vector_4_bits   : std_logic_vector(3 downto 0);
@@ -93,14 +96,8 @@ architecture arch of hamming_encoder is
 
 begin
 
-  -- generate the parity positions 
-  gen_parity_position_arr : for parity in 0 to n_parity_const-1 generate
-    parity_pos_arr(parity)  <= 2**parity - 1;
-    parity_step_arr(parity) <= 2**(parity + 1);
-  end generate gen_parity_position_arr;
-
   -- create the encoded array with parity = '0'
-  create_init_encoded_vector_proc : process (data_i,parity_pos_arr)
+  create_init_encoded_vector_proc : process (data_i)
     variable parity_idx_v : integer range 0 to n_parity_const-1;
     variable data_idx_v   : integer range 0 to w_data_c-1;
     variable vector_enc_v : std_logic_vector(w_enc_data_const-1 downto 0);
@@ -138,10 +135,8 @@ begin
   begin
     if (n_arst = '0') then
       rb1_encoded_vector_r <= (others => '0');
-      rb1_parity_pos_arr_r <= (others => 0);
     elsif rising_edge(clk) then
       rb1_encoded_vector_r <= encoded_vector;
-      rb1_parity_pos_arr_r <= parity_pos_arr;
     end if;
   end process reg_block_1_proc;
 
@@ -310,12 +305,11 @@ begin
 
   generate_encoded_w_parities : process (
       parities,
-      rb1_encoded_vector_r,
-      rb1_parity_pos_arr_r)
+      rb1_encoded_vector_r)
   begin
     encoded_vector_w_parities <= rb1_encoded_vector_r;
     add_parities_to_encoded_vector : for parity_pos in 0 to n_parity_const-1 loop
-      encoded_vector_w_parities(rb1_parity_pos_arr_r(parity_pos)) <= parities(parity_pos);
+      encoded_vector_w_parities(parity_pos_arr(parity_pos)) <= parities(parity_pos);
     end loop add_parities_to_encoded_vector;
   end process generate_encoded_w_parities;
 
